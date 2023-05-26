@@ -1,0 +1,58 @@
+#Notes dynamoDB Table
+notesTable:
+  Type: AWS::DynamoDB::Table
+  Properties:
+    TableName: notes-${self:provider.stage}
+    BillingMode: PAY_PER_REQUEST
+    AttributeDefinitions:
+    - AttributeName: notesId
+      AttributeType: S
+    KeySchema: 
+   #Attributes array for describing the key schema and indexes 
+    - AttributeName: notesId
+      KeyType: HASH
+      #  ProvisionThroughput:
+      #    ReadCapacityUnits: 1
+      #    WriteCapacityUnits: 1
+
+#Cognito Userpool
+cognitoUserPool:
+  Type: AWS::Cognito::UserPool
+  Properties: 
+    UserPoolName: MyNotesUP-${self:provider.stage}
+
+#User Pool wiht web client (You can create multiple clients to a pool like web or mobile)
+cognitoUserPoolWebClient:
+  Type: AWS::Cognito::UserPoolClient
+  Properties:
+    UserPoolId: !Ref cognitoUserPool
+    ClientName: web
+    AllowedOAuthFlowsUserPoolClient: true
+    SupportedIdentityProviders: 
+      - COGNITO
+    AllowedOAuthScopes: 
+      - email
+      - profile
+      - phone
+      - openid
+    AllowedOAuthFlows:
+      - implicit
+    CallbackURLs: 
+      - https://localhost:3000
+    
+
+#User Pool Doain
+cognitoUserPoolDomain:
+  Type: AWS::Cognito::UserPoolDomain
+  Properties: 
+    UserPoolId: !Ref cognitoUserPool
+    Domain: mynotestest1-${self:provider.stage}
+
+
+#Applications Parameter AWS Systems Manager
+userPoolArnParam:
+  Type: AWS::SSM::Parameter
+  Properties:
+    Name: /notes/${self:provider.stage}/userPoolId
+    Type: String
+    Value: !GetAtt cognitoUserPool.Arn

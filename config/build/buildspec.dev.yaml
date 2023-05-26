@@ -1,0 +1,34 @@
+version: 0.2
+
+run-as: Linux-user-name
+
+
+phases:
+  install:
+    on-failure: ABORT 
+    runtime-versions:
+      nodejs: 14
+      runtime: version
+    commands:
+      - echo installing serverless framework CLI
+      - npm i -g serverless@3 
+      - cd notes 
+      - echo Going into notes folder and installing NPM dependencies
+      - npm install
+
+  build:
+    on-failure: ABORT 
+    commands:
+      - echo running tests
+      - npm test
+      - echo Packaging the service and create folder with artifacts
+      - serverless package --package my-artifact --stage dev
+
+
+artifacts: 
+  files:
+    - my-artifact/*
+  name: MyProjectArtifacts
+cache:
+  paths:
+    - 'notes/node_modules/**/*'

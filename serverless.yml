@@ -1,0 +1,116 @@
+service: notes-api
+
+provider:
+  name: aws
+  runtime: nodejs14.x
+  profile: default
+  stage: ${opt:stage, 'dev'}
+  region: us-east-1
+  environment: 
+    # DYNAMODB_TABLE_NAME: ${self:custom.postsTableName}
+    DYNAMODB_TABLE_NAME: notes
+
+custom:
+    #Can even specific environment name
+    # postsTableName: posts-table${self:provider.stage} 
+  notesTableName: notes-${self:provider.stage} 
+
+  # Add plugims after you install
+plugins: 
+  - serverless-iam-roles-per-function
+
+  #Need to grant IAM permissiom to allow it to talk to other services like dynamodb
+  # iamRoleStatements:
+  #   - Effect: Allow
+  #     Action:
+  #       - dynamodb:PutItem
+  #       #Refer the resource the ARN (Amazon Resource Name)
+  #       #Use intrinsic function 
+  #       #At the provider level this applies to all functions so you want to scope it with the serverless plugin npm i --save-dev serverless-iam-roles-per-function
+  #     Resource: !GetAtt notesTable.Arn
+
+
+functions:
+  authorizer: 
+    handler: authorizer.handler
+    environment:
+      COGNITO_USER_POOL_ID: !Ref cognitoUserPool
+      COGNITO_WEB_CLIENT_ID: !Ref cognitoUserPoolWebClient
+
+  createNote:
+    handler: handler.createNote
+    memorySize: 128 #mb
+    timeout: 10 #seconds
+    events:
+      - http:
+          method: POST
+          path: notes
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+         - "dynamodb:PutItem"
+        #Refer the resource the ARN (Amazon Resource Name)
+        #Use intrinsic function 
+        #At the provider level this applies to all functions so you want to scope it with the serverless plugin npm i --save-dev serverless-iam-roles-per-function
+        Resource: !GetAtt notesTable.Arn
+  updateNote:
+    handler: handler.updateNote
+    memorySize: 128 #mb
+    timeout: 10 #seconds
+    events:
+      - http:
+          method: PUT
+          #need to id the note to modify and use a variable in params
+          path: notes/{id}
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+         - "dynamodb:UpdateItem"
+        #Refer the resource the ARN (Amazon Resource Name)
+        #Use intrinsic function 
+        #At the provider level this applies to all functions so you want to scope it with the serverless plugin npm i --save-dev serverless-iam-roles-per-function
+        Resource: !GetAtt notesTable.Arn
+  deleteNote:
+    handler: handler.deleteNote
+    memorySize: 128 #mb
+    timeout: 10 #seconds
+    #create an HTTP event 
+    events:
+      - http:
+          method: DELETE
+          #need to id the note to modify and use a variable in params
+          path: notes/{id} 
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+         - "dynamodb:DeleteItem"
+        #Refer the resource the ARN (Amazon Resource Name)
+        #Use intrinsic function 
+        #At the provider level this applies to all functions so you want to scope it with the serverless plugin npm i --save-dev serverless-iam-roles-per-function
+        Resource: !GetAtt notesTable.Arn
+  getAllNotes:
+    handler: handler.getAllNotes
+    #create an HTTP event 
+    memorySize: 128 #mb
+    timeout: 10 #seconds
+    events:
+      - http:
+          method: GET
+          path: notes
+          authorizer: 
+            name: userpool_authorizer
+            type: COGNITO_USER_POOLS
+            arn: !GetAtt cognitoUserPool.Arn
+            # arn: !GetAtt cognitoUserPool.Arn
+            # arn: ${ssm:/notes/${self:provider.stage}/userPoolArn} #AWS expects this to exist so comment entire section out first
+    iamRoleStatements:
+      - Effect: "Allow"
+        Action: 
+          - "dynamodb:Scan"
+        Resource: !GetAtt notesTable.Arn
+# you can add CloudFormation resource templates here
+
+#Import external 
+resources:
+  Resources:
+    ${file(resources.yml)}

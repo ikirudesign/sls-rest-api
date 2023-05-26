@@ -1,0 +1,87 @@
+
+
+service: notes-api
+
+# You can pin your service to only deploy with a specific Serverless version
+# Check out our docs for more details
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  lambdaHashingVersion: 20201221
+  stage: dev
+  region: us-east-1
+  #Need to grant IAM permissiom to allow it to talk to other services like dynamodb
+  # iamRoleStatements:
+  #   - Effect: Allow
+  #     Action:
+  #       - dynamodb:PutItem
+  #       #Refer the resource the ARN (Amazon Resource Name)
+  #       #Use intrinsic function 
+  #       #At the provider level this applies to all functions so you want to scope it with the serverless plugin npm i --save-dev serverless-iam-roles-per-function
+  #       Resource: !GetAtt notesTables.Arn
+
+
+functions:
+  createNote:
+    handler: handler.createNote
+    #plugins
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+         - dynamodb:PutItem
+        #Refer the resource the ARN (Amazon Resource Name)
+        #Use intrinsic function 
+        #At the provider level this applies to all functions so you want to scope it with the serverless plugin npm i --save-dev serverless-iam-roles-per-function
+        Resource: !GetAtt notesTable.Arn
+    #create an HTTP event 
+    events:
+      - http:
+          method: post
+          path: notes
+  updateNote:
+    handler: handler.updateNote
+    #create an HTTP event 
+    events:
+      - http:
+          method: put
+          #need to id the note to modify and use a variable in params
+          path: notes/{id}
+  deleteNote:
+    handler: handler.deleteNote
+    #create an HTTP event 
+    events:
+      - http:
+          method: delete
+          #need to id the note to modify and use a variable in params
+          path: notes/{id} 
+  getAllNotes:
+    handler: handler.getAllNotes
+    #create an HTTP event 
+    events:
+      - http:
+          method: get
+          path: notes
+
+
+#4 lambda functions needed, create a new note, modify, delete     
+
+# Add plugims after you install
+plugins: 
+  - serverless-iam-roles-per-function
+
+# you can add CloudFormation resource templates here
+resources:
+ Resources:
+   notesTable:
+     Type: AWS::DynamoDB::Table
+     Properties:
+       TableName: notes
+       BillingMode: PAY_PER_REQUEST
+       AttributeDefinitions:
+        - AttributeName: notesId
+          AttributeType: S
+       KeySchema: 
+        - AttributeName: notesId
+          KeyType: HASH
