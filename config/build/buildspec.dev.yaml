@@ -7,7 +7,7 @@ phases:
       nodejs: 14.x
     commands:
       - echo installing serverless framework CLI
-      - npm i -g serverless@3 
+      - npm i -g serverless
       - cd notes 
       - echo Going into notes folder and installing NPM dependencies
       - npm install
