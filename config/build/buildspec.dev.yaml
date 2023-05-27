@@ -8,7 +8,7 @@ phases:
     commands:
       - echo installing serverless framework CLI
       - npm i -g serverless
-      - cd notes 
+      # - cd notes 
       - echo Going into notes folder and installing NPM dependencies
       - npm install
 
